@@ -1,0 +1,82 @@
+---
+title: "ML Project Trial"
+author: Judy Fordjuoh
+date: April 14, 2022
+output: word_document
+---
+We aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children.
+
+```{r libraries, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)  
+
+#Exposome contains all of the environmental features measured on children. Phenotype contains health outcomes measured during the study. Covariate contains demographics and maternal information during pregnancy. Codebook is a detailed listing of all variables within the data frames. 
+library(tidyverse)
+library(caret)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(pROC)
+library(Amelia)
+library(randomForest)
+
+#Load data using path of where file is stored
+load("/Users/judyfordjuoh/Desktop/Machine Learning/exposome.RData")
+```
+
+Question:Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? 
+
+```{r data_prep, include=FALSE}
+#exposome data
+ex1 = exposome %>%
+    select(ID, h_pamod_t3_None, h_greenyn300_preg_None, h_pm10_ratio_preg_None, h_accesslines300_preg_dic0, h_accesspoints300_preg_Log, 	
+h_builtdens300_preg_Sqrt, h_connind300_preg_Sqrt, h_walkability_mean_preg_None) 
+
+#Check distributions, missing data etc for exposome.
+summary(ex1)
+ex1 <- na.omit(ex1)
+
+#phenotype data
+p1 = phenotype %>%
+  mutate(asthma = as.factor(hs_asthma)) %>%
+  select(ID, asthma) 
+
+#Check distributions, missing data etc for phenotype.
+summary(p1)
+p1 <- na.omit(p1)
+
+#Merge all data frames into a single data frame. FYI, this is just a shortcut by combining baseR with piping from tidyverse. There are other ways of merging across three data frames that are likely more elegant.
+studydata <- merge(ex1,p1,by = "ID")  
+
+#Strip off ID Variable
+studydata$ID <- NULL
+
+#Partition data for use in demonstration
+set.seed(100)
+train.indices <- createDataPartition(y = studydata$asthma,p = 0.7,list = FALSE)
+train_asthma <- studydata[train.indices, ]
+test_asthma <- studydata[-train.indices, ]
+
+```
+
+```{r RANDOM FOREST}
+set.seed(100)
+
+#Trying three different values of mtry (square root, half)
+# since we are not specifying our cross validation, the default is a bootstrap. R is bootstrapping 25 times.
+
+mtry.vals <- c(ncol(train_asthma) - 1, sqrt(ncol(train_asthma) - 1), 0.5*ncol(train_asthma) - 1)
+
+mtry.grid <- expand.grid(.mtry = mtry.vals)
+rf_asthma <- train(asthma ~., data = train_asthma, method = "rf", metric = "Accuracy", tuneGrid = mtry.grid, ntree = 100)
+
+confusionMatrix(rf_asthma)
+rf_asthma$results
+rf_asthma$bestTune
+rf_asthma$finalModel
+
+varImp(rf_asthma)
+plot(varImp(rf_asthma))
+
+varImpPlot(rf_asthma$finalModel)
+```
+

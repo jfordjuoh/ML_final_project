@@ -1,0 +1,44 @@
+---
+title: "ML Project Trial"
+author: Judy Fordjuoh
+date: April 14, 2022
+output: word_document
+---
+We aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children.
+
+```{r data_prep, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)  
+
+#Exposome contains all of the environmental features measured on children. Phenotype contains health outcomes measured during the study. Covariate contains demographics and maternal information during pregnancy. Codebook is a detailed listing of all variables within the data frames. 
+library(tidyverse)
+library(caret)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(pROC)
+library(Amelia)
+
+#Load data using path of where file is stored
+load("/Users/judyfordjuoh/Desktop/Machine Learning/exposome.RData")
+```
+
+Question:Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? 
+
+```{r data_prep, include=FALSE}
+#exposome data
+ex1 = exposome %>%
+    mutate(alcohol = as.factor(e3_alcpreg_yn_None)) %>%
+    select(ID, alcohol, h_pamod_t3_None, h_greenyn300_preg_None, h_pm10_ratio_preg_None, h_accesslines300_preg_dic0, h_accesspoints300_preg_Log, 	
+h_builtdens300_preg_Sqrt, h_connind300_preg_Sqrt, h_walkability_mean_preg_None) 
+
+#Check distributions, missing data etc for exposome.
+summary(ex1)
+ex <- na.omit(ex1)
+
+#phenotype data
+pheno1 = phenotype %>%
+  mutate(asthma = as.factor(hs_asthma)) %>%
+  select(ID, asthma) %>%
+
+```
+
