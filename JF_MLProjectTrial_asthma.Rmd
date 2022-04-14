@@ -80,3 +80,7 @@ plot(varImp(rf_asthma))
 varImpPlot(rf_asthma$finalModel)
 ```
 
+```{r SVM}
+we are doing an SVM because SVM offers very high accuracy compared to other classifiers such as logistic regression, and decision trees. It is known for its kernel trick to handle nonlinear input spaces.
+```
+
