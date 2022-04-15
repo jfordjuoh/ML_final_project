@@ -6,6 +6,9 @@ output: word_document
 ---
 We aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children.
 
+#WHEN DOING A RANDOM FOREST CAN YOU SAMPLE DOWN? IF SO WHERE DO WE ADD IT IN THE 
+#rf<-train
+
 ```{r libraries, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)  
 
@@ -16,14 +19,15 @@ library(dplyr)
 library(rpart)
 library(rpart.plot)
 library(pROC)
-library(Amelia)
+library(e1071)
+library(knitr)
 library(randomForest)
 
 #Load data using path of where file is stored
 load("/Users/judyfordjuoh/Desktop/Machine Learning/exposome.RData")
 ```
 
-Question:Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? 
+Question: Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? 
 
 ```{r data_prep, include=FALSE}
 #exposome data
@@ -41,7 +45,7 @@ p1 = phenotype %>%
   select(ID, asthma) 
 
 #Check distributions, missing data etc for phenotype.
-summary(p1)
+summary(p1) #data is not balanced for the outcome asthma. 0:1159 1:142
 p1 <- na.omit(p1)
 
 #Merge all data frames into a single data frame. FYI, this is just a shortcut by combining baseR with piping from tidyverse. There are other ways of merging across three data frames that are likely more elegant.
@@ -69,7 +73,7 @@ mtry.vals <- c(ncol(train_asthma) - 1, sqrt(ncol(train_asthma) - 1), 0.5*ncol(tr
 mtry.grid <- expand.grid(.mtry = mtry.vals)
 rf_asthma <- train(asthma ~., data = train_asthma, method = "rf", metric = "Accuracy", tuneGrid = mtry.grid, ntree = 100)
 
-confusionMatrix(rf_asthma)
+confusionMatrix(rf_asthma) #Accuracy (average) : 0.8868
 rf_asthma$results
 rf_asthma$bestTune
 rf_asthma$finalModel
@@ -80,7 +84,35 @@ plot(varImp(rf_asthma))
 varImpPlot(rf_asthma$finalModel)
 ```
 
+```{r LASSO}
+#LASSO
+#NTS: first create a grid to search lambda
+lambda <- 10^seq(-5,5, length = 100)
+
+set.seed(100)
+
+lasso_m <- train(
+  asthma ~., data = train_asthma, method = "glmnet", trControl = trainControl("cv", number = 10, sampling = "down"), preProc = c("center", "scale"), tuneGrid = expand.grid(alpha = 1, lambda = lambda)
+)
+
+#Print the values of alpha and lambda that gave best prediction
+lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.0042(lambda)| (Accuracy)
+
+#Print all of the options examined
+lasso_m$results %>% knitr::kable()
+
+# Model coefficients
+coef(lasso_m$finalModel, lasso_m$bestTune$lambda)
+
+#Confusion Matrix
+confusionMatrix(lasso_m) #Accuracy (average) : 0.5417
+```
+
+
 ```{r SVM}
-we are doing an SVM because SVM offers very high accuracy compared to other classifiers such as logistic regression, and decision trees. It is known for its kernel trick to handle nonlinear input spaces.
+#we are doing an SVM because SVM offers very high accuracy compared to other classifiers such as logistic regression, and decision trees. It is known for its kernel trick to handle nonlinear input spaces.
+
+
+
 ```
 
