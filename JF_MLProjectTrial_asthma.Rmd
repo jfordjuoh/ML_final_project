@@ -4,10 +4,18 @@ author: Judy Fordjuoh
 date: April 14, 2022
 output: word_document
 ---
-We aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children.
 
-#The data is unbalance for the outcome asthma (0:1159 1:142) Are we able to sample up/down in ensemble methods? Specifically the bagging and the rf I'm doing. 
+Question for Sneha: The data is unbalance for the outcome asthma (0:1159 1:142) Are we able to sample up/down in ensemble methods? Specifically the bagging and the rf I'm doing. 
 
+# INTRODUCTION
+## Background
+There have been several single-exposure studies that have documented possible effects of environmental factors on lung functio; however there have not been any studies that rely on an exposome approach. In "Early-life exposome and lung function in children in Europe: an analysis of data from the longitudinal, population-based HELIX cohort" by Ageir et. al, the authors aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children by using data from HELIX harmonized birth cohorts in Europe. After the research group working on HELIX released four datasets that represents their real HELIX data, various researchers have shared their their analytic methods for high-dimensional data. In this research project, I will use the various datasets to evaluate the association between a broad range of prenatal lifestyle and environmental exposures and lung function, specifically the development of asthma, in children.
+ 
+## Research Question
+Research Question: Does specific factors of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life?
+
+Why is predicting this important? 
+Predicting asthma based on the mother's environmental conditions while pregnant is important because once researchers understand what features contribute the most to asthma development, tracking this feature and limiting the exposure to the specific feature during pregnancy can reduce the chances of astham development in the child. Also, if the mother's medical team is able to keep track of the asthma-influencing features, then if the mother has a high exposure during pregnancy, it can provide the child's medical provider of their higher risk of astham development. This is essential as an early asthma diagnosis is important for the proper treatment of young children with respiratory symptoms. Equally important, identifying children at high risk for asthma is important because it could lead to personalized and improved disease management and can potentially reduce healthcare costs. Also by having an earlier diagnosis, parents and clinicians can slowly monitor the asthma symptoms and can have an accurate prognosis of if the asthma will develop into chronic asthma.
 
 ```{r libraries, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)  
@@ -27,8 +35,8 @@ library(randomForest)
 load("/Users/judyfordjuoh/Desktop/Machine Learning/exposome.RData")
 ```
 
-Question: Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? Restructured question: Does specific factors of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life?
 
+## Data Cleaning, Prepping, and Exploration
 ```{r data_prep, include=FALSE}
 #exposome data
 ex1 = exposome %>%
@@ -48,7 +56,7 @@ p1 = phenotype %>%
 summary(p1) #data is not balanced for the outcome asthma. 0:1159 1:142
 p1 <- na.omit(p1)
 
-#Merge all data frames into a single data frame. FYI, this is just a shortcut by combining baseR with piping from tidyverse. There are other ways of merging across three data frames that are likely more elegant.
+#Merge all data frames into a single data frame. 
 studydata <- merge(ex1,p1,by = "ID")  
 
 #Strip off ID Variable
@@ -61,13 +69,28 @@ train_asthma <- studydata[train.indices, ]
 test_asthma <- studydata[-train.indices, ]
 
 ```
+I utilized the exposome dataset, which contains all of the environmental features measured on children, and the phenotype dataset, which contains health outcomes measured during the study. To narrow down the exposome dataset, I specifically included variables that are associated with the built environment and were measured during pregnancy. The features I selected was: Walking and/or cycling activity during pregnancy (h_pamod_t3_None), Is there a green space in a distance of 300m? (h_greenyn300_preg_None), pm10 value (h_pm10_ratio_preg_None), meters of public transport mode lines (only buses) inside each 300 m buffer (h_accesslines300_preg_dic0), number of bus public transport mode stops inside each 300 m buffer(h_accesspoints300_preg_Log), building density (m2 built/km2) within a buffers of 300 m buffer during pregnancy period (h_builtdens300_preg_Sqrt), connectivity density within a buffers of 300 m buffer during pregnancy period(number of intersections / km2)(h_connind300_preg_Sqrt), and walkability index during pregnancy period (h_walkability_mean_preg_None). The selected features are related to the mother's air quality/air pollution levels during pregnancy. Factors such as access to green space and the walkability index are factors related to the built environment that may influence the amount of daily physical activity a mother may have. Lack of physical activity during pregnancy can lead to various health issues for pregnant individuals, which can affect children in the future. 
+
+There were 321 participants who did not have green space in a distance of 300m during pregnancy and 980 participants who did. The average number of bus public transport mode stops inside each 300 m buffer was 2.67 (range = 3.26). The meters of public transport mode lines (only buses) inside each 300 m buffer was 0.199m. The average pm10 value during pregnancy was 23.504 (range = 39.632). The average building density during pregnancy was 417.06 m2 built/km2 (range = 796.55). The average connectivity density during pregnancy was 12.737 (range = 25.389). The average walkability index during pregnancy was 0.2674 (range = 0.525). 
+
+The outcome (asthma) is unbalanced, with 1159 children without asthma and 142 with asthma. The datasets were merged by ID. 
 
 
-#BAGGING
+# Algorithms
+In this project, I will be doing a mix of algorithms to predict the accuracy of the models and to discover which of the features I've selected in my model are the most important in predicting asthma. I will do bagging, random forest, LASSO, and a support vector machine model to see which algorithms will provide me with the best accuracy. 
+
+Bagging is an ensemble algorithm that fits multiple models on different subsets of a training dataset, then combines the predictions from all models. Specifically, bagging averages results across bootstrapped samples of training data. Random forest is an extension of bagging that also randomly selects subsets of features used in each bootstrap. With random forest, we are not so concerned with overfitting because variance is reduced by the decorrelation of trees. By conducting both, I can see which one would provide a better accuracy in for the model. Bagging and random forest are a tree models which typical rank features by how well they improve the purity of the node. Variable selection is an important part of prediction model development and bagging and random forest will give estimates of what features are important in the classification of asthma.
+
+LASSO is the only regularized regression model included in this project. The LASSO model has the ability to shrink data values towards a central point such as 0. Due to LASSO's shrinkage ability, it is well-suited for feature selection/elimination, which is what I am concerned about in this project.
+
+Support Vector Machine (SVM) is a robust supervised machine learning algorithm which can be used for classification or regression problems. SVM will use the optimal hyperplane to correctly classify between the data points of the two asthma levels. Typically, SVM is better than most of the other algorithms used as it has a better accuracy in results, and I believe it will be interesting to compare the accuracies fo SVM to the other algorithms in this study. Feature importance for asthma development can also be determined using SVM by by comparing the size of the feature coefficients to each other. This will show us whihc variables are not important and holds less variance. 
+
+
+### BAGGING
 ```{r BAG}
 set.seed(100) 
 
-#Example code using other bagging methods. This is a treebagg method, which gives you greater control of the hyperparameters
+#Using the treebagg method, which provides greater control of the hyperparameters
 controlsettings<-trainControl(method="cv", number=1)
 bagging_asthma<-train(asthma ~., data=train_asthma, method="treebag", trcontrol=controlsettings, nbagg=10, control=rpart.control(minsplit=20, cp=0))
 
@@ -78,7 +101,7 @@ confusionMatrix(bagging_asthma) #0.8809
 ```
 
 
-# RANDOM FOREST
+### RANDOM FOREST
 ```{r RANDOM FOREST}
 set.seed(100)
 
@@ -104,7 +127,7 @@ varImpPlot(rf_asthma$finalModel)
 ```
 
 
-# LASSO
+### LASSO
 ```{r LASSO}
 #LASSO
 #NTS: first create a grid to search lambda
@@ -131,7 +154,7 @@ confusionMatrix(lasso_m) #Accuracy (average) : 0.5417
 ```
 
 
-#Support Vector Machine
+### Support Vector Machine
 ```{r data_restructing_SVM}
 #we are doing an SVM because SVM offers very high accuracy compared to other classifiers such as logistic regression, and decision trees. It is known for its kernel trick to handle nonlinear input spaces.
 
@@ -197,4 +220,25 @@ abline(a = 0,b = 1)
 varImp(svm_asthma2)
 #h_builtdens300_preg_Sqrt : 100.000, h_pm10_ratio_preg_None: 92.350, h_accesspoints300_preg_Log = 88.992
 ```
+
+# CONCLUSION
+Out of the 4 different predicition models I used, random forest had the highest accuracy and so I will apply that to the testing data to see what the accuracy will be. 
+```{r RF_testing model}
+mtryvals <- c(ncol(train_asthma) - 1, sqrt(ncol(train_asthma) - 1), 0.5*ncol(train_asthma) - 1)
+
+mtrygrid <- expand.grid(.mtry = mtryvals)
+
+rf_asthma_test <- train(asthma ~., data = test_asthma, method = "rf", metric = "Accuracy", tuneGrid = mtrygrid, ntree = 100)
+
+confusionMatrix(rf_asthma_test) #Accuracy (average) : 0.883
+rf_asthma_test$results
+rf_asthma_test$bestTune
+rf_asthma_test$finalModel
+
+varImp(rf_asthma_test)
+plot(varImp(rf_asthma_test))
+
+varImpPlot(rf_asthma_test$finalModel)
+```
+
 
