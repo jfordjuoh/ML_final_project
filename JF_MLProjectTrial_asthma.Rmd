@@ -62,6 +62,8 @@ studydata <- merge(ex1,p1,by = "ID")
 #Strip off ID Variable
 studydata$ID <- NULL
 
+levels(studydata$h_pamod_t3_None) <- c("no_activity", "sometimes_activity", "often_activity", "very_often")
+
 #Partition data for use in demonstration
 set.seed(100)
 train.indices <- createDataPartition(y = studydata$asthma,p = 0.7,list = FALSE)
@@ -77,7 +79,7 @@ The outcome (asthma) is unbalanced, with 1159 children without asthma and 142 wi
 
 
 # Algorithms
-In this project, I will be doing a mix of algorithms to predict the accuracy of the models and to discover which of the features I've selected in my model are the most important in predicting asthma. I will do bagging, random forest, LASSO, and a support vector machine model to see which algorithms will provide me with the best accuracy. 
+In this project, I will be doing a mix of algorithms to predict the accuracy of the models and to discover which of the features I've selected in my model are the most important in predicting asthma. Variables with high importance will be drivers of the outcome (asthma) and their values have a significant impact on one's asthma status. I will do bagging, random forest, LASSO, and a support vector machine model to see which algorithms will provide me with the best accuracy. 
 
 Bagging is an ensemble algorithm that fits multiple models on different subsets of a training dataset, then combines the predictions from all models. Specifically, bagging averages results across bootstrapped samples of training data. Random forest is an extension of bagging that also randomly selects subsets of features used in each bootstrap. With random forest, we are not so concerned with overfitting because variance is reduced by the decorrelation of trees. By conducting both, I can see which one would provide a better accuracy in for the model. Bagging and random forest are a tree models which typical rank features by how well they improve the purity of the node. Variable selection is an important part of prediction model development and bagging and random forest will give estimates of what features are important in the classification of asthma.
 
@@ -99,6 +101,7 @@ varImp(bagging_asthma)
 plot(varImp(bagging_asthma))
 confusionMatrix(bagging_asthma) #0.8809
 ```
+With the bagging method, the average accuracy was 0.8809. In this model, the most important variable in predicting asthma was the pm10 value during pregnancy (100.00), the building density within a buffers of 300 m buffer during pregnancy period (87.320), and the connectivity density within a buffers of 300 m buffer during pregnancy period(number of intersections / km2) (81.362).  Interestingly the level "often_activity" from the walking and/or cycling activity during pregnancy feature had 0.000, which means it very little predictive power for asthma however, "sometimes_activity" was 10.631 and "very_often" was 6.053. 
 
 
 ### RANDOM FOREST
@@ -122,9 +125,9 @@ varImp(rf_asthma)
 plot(varImp(rf_asthma))
 
 varImpPlot(rf_asthma$finalModel)
-#Most important variables: h_builtdens300_preg_Sqrt = 100.000, h_pm10_ratio_preg_None = 88.815, h_connind300_preg_Sqrt = 77.481
-#Least important variables: h_pamod_t3 = 2.194, h_accesslines300_preg_dic0 = 0.000
+
 ```
+With the random forest method, the average accuracy was 0.8868. In this model, the most important variable in predicting asthma was the building density within a buffers of 300 m buffer during pregnancy period (100), the pm10 value during pregnancy (88.815), and the connectivity density within a buffers of 300 m buffer during pregnancy period(number of intersections / km2) (77.481). The top variables for the random forest method were the same as bagging. The lowest feature was the meters of public transport mode lines (only buses) inside each 300 m buffer (0.00). 
 
 
 ### LASSO
@@ -140,7 +143,7 @@ lasso_m <- train(
 )
 
 #Print the values of alpha and lambda that gave best prediction
-lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.004(lambda)| (Accuracy)
+lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.004(lambda)| (Accuracy):0.5417
 
 #Print all of the options examined
 lasso_m$results %>% knitr::kable()
@@ -152,6 +155,7 @@ coef(lasso_m$finalModel, lasso_m$bestTune$lambda)
 #Confusion Matrix
 confusionMatrix(lasso_m) #Accuracy (average) : 0.5417
 ```
+With the LASSO, the average accuracy was 0.5417. The value of lambda that provided the best predcition was 0.0042. The two features that went to 0 in this model were the "sometimes_activity" level of the walking and/or cycling activity during pregnancy feature and the pm10 value when pregnant. The largest beta was for the number of bus public transport mode stops inside each 300 m buffer which was 4.794318e-01. The smallest beta was for building density which was -2.956366e-01.
 
 
 ### Support Vector Machine
@@ -220,9 +224,12 @@ abline(a = 0,b = 1)
 varImp(svm_asthma2)
 #h_builtdens300_preg_Sqrt : 100.000, h_pm10_ratio_preg_None: 92.350, h_accesspoints300_preg_Log = 88.992
 ```
+When we modeled SVM with the training data, the accuracy was 0.5603. However when modeling SVM with a different cost value, the accuracy went up to 0.5833. When I made predictions on the test data using the second SVM model (with the different cost), the accuracy went down to 0.5296 (95% CI: 0.4786, 0.5801) with a sensitivity of 0.64286 and a specificity of 0.51585. The top important features in this model was building density (100), pm10 value (92.350), and the number of bus public transport mode stops inside each 300 m buffer (88.992). The least important features were physical activity (4.527) and access to green space in a distance of 300m (0.00). When looking at the ROC curve, this model is a poor classifier of asthma, meaning that the model will not able to distinguish the two classes well and has caused the ROC curve is be closer to the diagonal random line. A ROC curve that is a better/good classifier of asthma  would have been closer to the top left of the graph, demonstrating a high true positive rate at a low false positive rate. 
+
 
 # CONCLUSION
-Out of the 4 different predicition models I used, random forest had the highest accuracy and so I will apply that to the testing data to see what the accuracy will be. 
+Out of the 4 different prediction models I used, random forest had the highest accuracy. Equally important, specific features in random forest like building density and pm10 value were also  important variables in other models like SVM and bagging. I will conduct a random forest model to the testing data to see what the difference is between the accuracies.  
+
 ```{r RF_testing model}
 mtryvals <- c(ncol(train_asthma) - 1, sqrt(ncol(train_asthma) - 1), 0.5*ncol(train_asthma) - 1)
 
@@ -240,5 +247,7 @@ plot(varImp(rf_asthma_test))
 
 varImpPlot(rf_asthma_test$finalModel)
 ```
+With the random forest method using the testing data, the average accuracy was 0.886. In this model, the most important variable in predicting asthma was the pm10 value during pregnancy (100), the building density during the pregnancy period (91.178), and the connectivity density during pregnancy period (88.55). The least important feature was the meters of public transport mode lines (only buses) inside each 300 m buffer (0.00). 
 
+By using various algorithms to discover important features when predicting asthma and identifying which model will have the highest accuracy, we are able to use this information to improve health outcomes and treatment plans for children whose mothers were exposed to a poorer built environment during pregnancy. 
 
