@@ -7,7 +7,7 @@ output: word_document
 We aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children.
 
 #WHEN DOING A RANDOM FOREST CAN YOU SAMPLE DOWN? IF SO WHERE DO WE ADD IT IN THE 
-#rf<-train
+#rf<-train. Also what about in SVM? Do we have to scale down for it? 
 
 ```{r libraries, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)  
@@ -27,7 +27,7 @@ library(randomForest)
 load("/Users/judyfordjuoh/Desktop/Machine Learning/exposome.RData")
 ```
 
-Question: Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? 
+Question: Can the quality of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life? Restructured question: Does specific factors of the built environment during a mothers pregnancy predict whether an individuals develops asthma within their life?
 
 ```{r data_prep, include=FALSE}
 #exposome data
@@ -62,6 +62,7 @@ test_asthma <- studydata[-train.indices, ]
 
 ```
 
+# RANDOM FOREST
 ```{r RANDOM FOREST}
 set.seed(100)
 
@@ -82,8 +83,11 @@ varImp(rf_asthma)
 plot(varImp(rf_asthma))
 
 varImpPlot(rf_asthma$finalModel)
+#Most important variables: h_builtdens300_preg_Sqrt = 100.000, h_pm10_ratio_preg_None = 88.815, h_connind300_preg_Sqrt = 77.481
+#Least important variables: h_pamod_t3 = 2.194, h_accesslines300_preg_dic0 = 0.000
 ```
 
+# LASSO
 ```{r LASSO}
 #LASSO
 #NTS: first create a grid to search lambda
@@ -96,23 +100,84 @@ lasso_m <- train(
 )
 
 #Print the values of alpha and lambda that gave best prediction
-lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.0042(lambda)| (Accuracy)
+lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.004(lambda)| (Accuracy)
 
 #Print all of the options examined
 lasso_m$results %>% knitr::kable()
 
 # Model coefficients
-coef(lasso_m$finalModel, lasso_m$bestTune$lambda)
+coef(lasso_m$finalModel, lasso_m$bestTune$lambda) 
+#h_pamod_t3_NoneOften and h_pm10_ratio_preg_None went to 0. The largest beta is h_accesspoints300_preg_Log = 4.794318e-01
 
 #Confusion Matrix
 confusionMatrix(lasso_m) #Accuracy (average) : 0.5417
 ```
 
-
-```{r SVM}
+#Support Vector Machine
+```{r data_restructing_SVM}
 #we are doing an SVM because SVM offers very high accuracy compared to other classifiers such as logistic regression, and decision trees. It is known for its kernel trick to handle nonlinear input spaces.
 
+#add levels to the asthma variable because I'll need it for SVM.
+studydata_svm = studydata 
+
+summary(studydata_svm) #data is unbalanced. No asthma is 1159 and asthma is 142
+
+levels(studydata_svm$asthma) <- c("no_asthma", "yes_asthma")
+
+#Set No Asthma as Reference Level
+studydata_svm$asthma <- relevel(studydata_svm$asthma, ref = "no_asthma")
+
+set.seed(100)
+trainsvm.indices <- createDataPartition(y = studydata_svm$asthma,p = 0.7,list = FALSE)
+trainsvm_asthma <- studydata_svm[trainsvm.indices, ]
+testsvm_asthma <- studydata_svm[-trainsvm.indices, ]
+```
+ 
+
+```{r SVM_actual_code}
+
+set.seed(100)
+
+#Set 10-fold cross-validation. Note if you want predicted probabilities, you need to set class Probs=True
+traincontrol_svm <- trainControl(method = "cv", number = 10, sampling = "up", classProbs = T)
 
 
+#Train model. Note we are scaling data
+svm_asthma <- train(asthma ~ ., data = trainsvm_asthma, method = "svmLinear", trControl = traincontrol_svm, preProcess = c("center", "scale"))
+
+svm_asthma #Accuracy:0.5603
+
+#Incorporate different values for cost (C)
+svm_asthma2 <- train(asthma ~ ., data = trainsvm_asthma, method = "svmLinear",  trControl = traincontrol_svm, preProcess = c("center", "scale"), tuneGrid = expand.grid(C = seq(0.001,2, length = 30)))
+
+#Visualize accuracy versus values of C
+plot(svm_asthma2)
+
+#Obtain metrics of accuracy from training
+confusionMatrix(svm_asthma2) #Accuracy: 0.5833
+
+#See information about final model
+svm_asthma2$finalModel
+
+#Make predictions in testset
+svm_asthma2_predtest <- predict(svm_asthma2, testsvm_asthma)
+
+#Get evaluation metrics from test set
+confusionMatrix(svm_asthma2_predtest, testsvm_asthma$asthma, positive = "yes_asthma")
+#Accuracy:0.5296 with a 95% CI of (0.4786, 0.5801) with a sensitivity of 0.64286 and a specificity of 0.5158
+
+#Create ROC Curve for Analysis
+pred.prob <- predict(svm_asthma2, testsvm_asthma, type = "prob")
+
+#Another potential evaluation: Area under the Reciver Operating Curve (AUROC)
+analysis <- roc(response = testsvm_asthma$asthma, predictor = pred.prob[,2])
+plot(1 - analysis$specificities,analysis$sensitivities,type = "l",
+ylab = "Sensitivity",xlab = "1-Specificity",col = "black",lwd = 2,
+main = "ROC Curve for Asthma Classification")
+abline(a = 0,b = 1)
+
+#Variable Importance
+varImp(svm_asthma2)
+#h_builtdens300_preg_Sqrt : 100.000, h_pm10_ratio_preg_None: 92.350, h_accesspoints300_preg_Log = 88.992
 ```
 
