@@ -1,21 +1,19 @@
 ---
-title: "ML Project Trial"
+title: "Using Environmental Factors During Pregnancy to Predict Asthma in Children"
 author: Judy Fordjuoh
 date: April 14, 2022
 output: word_document
 ---
 
-Question for Sneha: The data is unbalance for the outcome asthma (0:1159 1:142) Are we able to sample up/down in ensemble methods? Specifically the bagging and the rf I'm doing. 
-
 # INTRODUCTION
 ## Background
-There have been several single-exposure studies that have documented possible effects of environmental factors on lung functio; however there have not been any studies that rely on an exposome approach. In "Early-life exposome and lung function in children in Europe: an analysis of data from the longitudinal, population-based HELIX cohort" by Ageir et. al, the authors aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children by using data from HELIX harmonized birth cohorts in Europe. After the research group working on HELIX released four datasets that represents their real HELIX data, various researchers have shared their their analytic methods for high-dimensional data. In this research project, I will use the various datasets to evaluate the association between a broad range of prenatal lifestyle and environmental exposures and lung function, specifically the development of asthma, in children.
+There have been several single-exposure studies that have documented possible effects of environmental factors on lung function; however there have not been any studies that rely on an exposome approach. In "Early-life exposome and lung function in children in Europe: an analysis of data from the longitudinal, population-based HELIX cohort" by Ageir et. al, the authors aimed to evaluate the association between a broad range of prenatal and postnatal lifestyle and environmental exposures and lung function in children by using data from HELIX harmonized birth cohorts in Europe. After the research group working on HELIX released four datasets that represents their real HELIX data, various researchers have shared their their analytic methods for high-dimensional data. In this research project, I will use the various datasets to evaluate the association between a broad range of prenatal lifestyle and environmental exposures and lung function, specifically the development of asthma, in children.
  
 ## Research Question
 Research Question: Does specific factors of the built environment during a mother's pregnancy predict whether a child develops asthma?
 
 Why is predicting this important? 
-Predicting asthma based on the mother's environmental conditions while pregnant is important because once researchers understand what features contribute the most to asthma development, tracking this feature and limiting the exposure to the specific feature during pregnancy can reduce the chances of astham development in the child. Also, if the mother's medical team is able to keep track of the asthma-influencing features, then if the mother has a high exposure during pregnancy, it can provide the child's medical provider of their higher risk of astham development. This is essential as an early asthma diagnosis is important for the proper treatment of young children with respiratory symptoms. Equally important, identifying children at high risk for asthma is important because it could lead to personalized and improved disease management and can potentially reduce healthcare costs. Also by having an earlier diagnosis, parents and clinicians can slowly monitor the asthma symptoms and can have an accurate prognosis of if the asthma will develop into chronic asthma.
+Predicting asthma based on the mother's environmental conditions while pregnant is important because once researchers understand what features contribute the most to asthma development, tracking this feature and limiting the exposure to the specific feature during pregnancy can reduce the chances of asthma development in the child. Also, if the mother's medical team is able to keep track of the asthma-influencing features, then if the mother has a high exposure during pregnancy, it can alert the child's medical provider of their higher risk of asthma development. This is essential as an early asthma diagnosis is important for the proper treatment of young children with respiratory symptoms. Equally important, identifying children at high risk for asthma is important because it could lead to personalized and improved disease management and can potentially reduce healthcare costs. Also by having an earlier diagnosis, parents and clinicians can slowly monitor the asthma symptoms and can have an accurate prognosis of whether the asthma will develop into chronic asthma.
 
 ```{r libraries, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)  
@@ -79,13 +77,13 @@ The outcome (asthma) is unbalanced, with 1159 children without asthma and 142 wi
 
 
 # Algorithms
-In this project, I will be doing a mix of algorithms to predict the accuracy of the models and to discover which of the features I've selected in my model are the most important in predicting asthma. Variables with high importance will be drivers of the outcome (asthma) and their values have a significant impact on one's asthma status. I will do bagging, random forest, LASSO, and a support vector machine model to see which algorithms will provide me with the best accuracy. 
+In this project, I will be doing a mix of algorithms to discover which of the features I've selected in my model are the most important in predicting asthma. Variables with high importance will be drivers of the outcome (asthma) and their values have a significant impact on one's asthma status. I will also be assessing the model's accuracy. I will do bagging, random forest, LASSO, and a support vector machine model to see which algorithms will provide me with the best accuracy. 
 
 Bagging is an ensemble algorithm that fits multiple models on different subsets of a training dataset, then combines the predictions from all models. Specifically, bagging averages results across bootstrapped samples of training data. Random forest is an extension of bagging that also randomly selects subsets of features used in each bootstrap. With random forest, we are not so concerned with overfitting because variance is reduced by the decorrelation of trees. By conducting both, I can see which one would provide a better accuracy in for the model. Bagging and random forest are a tree models which typical rank features by how well they improve the purity of the node. Variable selection is an important part of prediction model development and bagging and random forest will give estimates of what features are important in the classification of asthma.
 
 LASSO is the only regularized regression model included in this project. The LASSO model has the ability to shrink data values towards a central point such as 0. Due to LASSO's shrinkage ability, it is well-suited for feature selection/elimination, which is what I am concerned about in this project.
 
-Support Vector Machine (SVM) is a robust supervised machine learning algorithm which can be used for classification or regression problems. SVM will use the optimal hyperplane to correctly classify between the data points of the two asthma levels. Typically, SVM is better than most of the other algorithms used as it has a better accuracy in results, and I believe it will be interesting to compare the accuracies fo SVM to the other algorithms in this study. Feature importance for asthma development can also be determined using SVM by by comparing the size of the feature coefficients to each other. This will show us whihc variables are not important and holds less variance. 
+Support Vector Machine (SVM) is a robust supervised machine learning algorithm which can be used for classification or regression problems. SVM will use the optimal hyperplane to correctly classify between the data points of the two asthma levels. Typically, SVM is better than most of the other algorithms used as it has a better accuracy in results, and I believe it will be interesting to compare the accuracies fo SVM to the other algorithms in this study. Feature importance for asthma can also be determined using SVM by by comparing the size of the feature coefficients to each other. This will show us which variables are not important and holds less variance. 
 
 
 ### BAGGING
@@ -144,10 +142,17 @@ lasso_m <- train(
 
 #Print the values of alpha and lambda that gave best prediction
 lasso_m$bestTune %>% knitr::kable() # 1(alpha)|0.004(lambda)| (Accuracy):0.5417
+```
+
+
+```{r LASSO_hiding_myresults, include=FALSE}
 
 #Print all of the options examined
 lasso_m$results %>% knitr::kable()
+```
 
+
+```{r LASSO continued}
 # Model coefficients
 coef(lasso_m$finalModel, lasso_m$bestTune$lambda) 
 #h_pamod_t3_NoneOften and h_pm10_ratio_preg_None went to 0. The largest beta is h_accesspoints300_preg_Log = 4.794318e-01
@@ -155,7 +160,7 @@ coef(lasso_m$finalModel, lasso_m$bestTune$lambda)
 #Confusion Matrix
 confusionMatrix(lasso_m) #Accuracy (average) : 0.5417
 ```
-With the LASSO, the average accuracy was 0.5417. The value of lambda that provided the best predcition was 0.0042. The two features that went to 0 in this model were the "sometimes_activity" level of the walking and/or cycling activity during pregnancy feature and the pm10 value when pregnant. The largest beta was for the number of bus public transport mode stops inside each 300 m buffer which was 4.794318e-01. The smallest beta was for building density which was -2.956366e-01.
+With the LASSO, the average accuracy was 0.5417. The value of lambda that provided the best prediction was 0.0042. The two features that went to 0 in this model were the "sometimes_activity" level of the walking and/or cycling activity during pregnancy feature and the pm10 value when pregnant. The largest beta was for the number of bus public transport mode stops inside each 300 m buffer which was 4.794318e-01. The smallest beta was for building density which was -2.956366e-01.
 
 
 ### Support Vector Machine
@@ -183,13 +188,13 @@ testsvm_asthma <- studydata_svm[-trainsvm.indices, ]
 set.seed(100)
 
 #Set 10-fold cross-validation. Note if you want predicted probabilities, you need to set class Probs=True
-traincontrol_svm <- trainControl(method = "cv", number = 10, sampling = "up", classProbs = T)
+traincontrol_svm <- trainControl(method = "cv", number = 10, sampling = "down", classProbs = T)
 
 
 #Train model. Note we are scaling data
 svm_asthma <- train(asthma ~ ., data = trainsvm_asthma, method = "svmLinear", trControl = traincontrol_svm, preProcess = c("center", "scale"))
 
-svm_asthma #Accuracy:0.5603
+svm_asthma #Accuracy:0.4879
 
 #Incorporate different values for cost (C)
 svm_asthma2 <- train(asthma ~ ., data = trainsvm_asthma, method = "svmLinear",  trControl = traincontrol_svm, preProcess = c("center", "scale"), tuneGrid = expand.grid(C = seq(0.001,2, length = 30)))
@@ -198,7 +203,7 @@ svm_asthma2 <- train(asthma ~ ., data = trainsvm_asthma, method = "svmLinear",  
 plot(svm_asthma2)
 
 #Obtain metrics of accuracy from training
-confusionMatrix(svm_asthma2) #Accuracy: 0.5833
+confusionMatrix(svm_asthma2) #Accuracy: 0.5603
 
 #See information about final model
 svm_asthma2$finalModel
@@ -208,7 +213,7 @@ svm_asthma2_predtest <- predict(svm_asthma2, testsvm_asthma)
 
 #Get evaluation metrics from test set
 confusionMatrix(svm_asthma2_predtest, testsvm_asthma$asthma, positive = "yes_asthma")
-#Accuracy:0.5296 with a 95% CI of (0.4786, 0.5801) with a sensitivity of 0.64286 and a specificity of 0.5158
+#Accuracy:0.3779 with a 95% CI of (0.3296, 0.4281) with a sensitivity of 0.54762 and a specificity of 0.35735
 
 #Create ROC Curve for Analysis
 pred.prob <- predict(svm_asthma2, testsvm_asthma, type = "prob")
@@ -224,20 +229,22 @@ abline(a = 0,b = 1)
 varImp(svm_asthma2)
 #h_builtdens300_preg_Sqrt : 100.000, h_pm10_ratio_preg_None: 92.350, h_accesspoints300_preg_Log = 88.992
 ```
-When we modeled SVM with the training data, the accuracy was 0.5603. However when modeling SVM with a different cost value, the accuracy went up to 0.5833. When I made predictions on the test data using the second SVM model (with the different cost), the accuracy went down to 0.5296 (95% CI: 0.4786, 0.5801) with a sensitivity of 0.64286 and a specificity of 0.51585. The top important features in this model was building density (100), pm10 value (92.350), and the number of bus public transport mode stops inside each 300 m buffer (88.992). The least important features were physical activity (4.527) and access to green space in a distance of 300m (0.00). When looking at the ROC curve, this model is a poor classifier of asthma, meaning that the model will not able to distinguish the two classes well and has caused the ROC curve is be closer to the diagonal random line. A ROC curve that is a better/good classifier of asthma  would have been closer to the top left of the graph, demonstrating a high true positive rate at a low false positive rate. 
+When we modeled SVM with the training data, the accuracy was 0.4879 However when modeling SVM with a different cost value, the accuracy went up to 0.5603 When I made predictions on the test data using the second SVM model (with the different cost), the accuracy went down to 0.3779 (95% CI: 0.3296, 0.4281) with a sensitivity of 0.54762 and a specificity of 0.35735. The top important features in this model was building density (100), pm10 value (92.350), and the number of bus public transport mode stops inside each 300 m buffer (88.992). The least important features were physical activity (4.527) and access to green space in a distance of 300m (0.00). When looking at the ROC curve, this model is a poor classifier of asthma, meaning that the model will not able to distinguish the two classes well and has caused the ROC curve is be closer to the diagonal random line. A ROC curve that is a better/good classifier of asthma would have been closer to the top left of the graph, demonstrating a high true positive rate at a low false positive rate. 
 
 
 # CONCLUSION
-Out of the 4 different prediction models I used, random forest had the highest accuracy. Equally important, specific features in random forest like building density and pm10 value were also  important variables in other models like SVM and bagging. I will conduct a random forest model to the testing data to see what the difference is between the accuracies.  
+Out of the 4 different prediction models I used, random forest had the highest accuracy. Equally important, specific features in random forest like building density and pm10 value were also important variables in other models like SVM and bagging. I will conduct a random forest model to the testing data to see what the difference is between the accuracies.  
 
 ```{r RF_testing model}
+set.seed(100)
+
 mtryvals <- c(ncol(train_asthma) - 1, sqrt(ncol(train_asthma) - 1), 0.5*ncol(train_asthma) - 1)
 
 mtrygrid <- expand.grid(.mtry = mtryvals)
 
 rf_asthma_test <- train(asthma ~., data = test_asthma, method = "rf", metric = "Accuracy", tuneGrid = mtrygrid, ntree = 100)
 
-confusionMatrix(rf_asthma_test) #Accuracy (average) : 0.883
+confusionMatrix(rf_asthma_test) #Accuracy (average) : 0.8871
 rf_asthma_test$results
 rf_asthma_test$bestTune
 rf_asthma_test$finalModel
@@ -247,7 +254,7 @@ plot(varImp(rf_asthma_test))
 
 varImpPlot(rf_asthma_test$finalModel)
 ```
-With the random forest method using the testing data, the average accuracy was 0.886. In this model, the most important variable in predicting asthma was the pm10 value during pregnancy (100), the building density during the pregnancy period (91.178), and the connectivity density during pregnancy period (88.55). The least important feature was the meters of public transport mode lines (only buses) inside each 300 m buffer (0.00). 
+With the random forest method using the testing data, the average accuracy was 0.8871 with the best mtry value being 2.828427. In this model, the most important variable in predicting asthma was the pm10 value during pregnancy (100), the building density during the pregnancy period (87.785), and the connectivity density during pregnancy period (81.585). The least important feature was the meters of public transport mode lines (only buses) inside each 300 m buffer (0.00). 
 
-By using various algorithms to discover important features when predicting asthma and identifying which model will have the highest accuracy, we are able to use this information to improve health outcomes and treatment plans for children whose mothers were exposed to a poorer built environment during pregnancy. 
+By using various algorithms to discover important features when predicting asthma and identifying which model will have the highest accuracy, we are able to use this information to improve health outcomes and treatment plans for children whose mothers were exposed to a poorer built environment during pregnancy. Through this model, we learn that environmental variables such as pm10 value, building density, and connectivity density are connected to asthma in children. 
 
